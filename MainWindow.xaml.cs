@@ -34,6 +34,23 @@
             this.InitializeKinect();
         }
 
+        protected void DepthFrameHandler(object sender, DepthImageFrameReadyEventArgs e)
+        {
+            using (DepthImageFrame depthFrame = e.OpenDepthImageFrame())
+            {
+                if (depthFrame != null)
+                {
+                    short[] pixelData = new short[depthFrame.PixelDataLength];
+                    int stride = depthFrame.Width * depthFrame.BytesPerPixel;
+                    depthFrame.CopyPixelDataTo(pixelData);
+                    this.writeableBMP.WritePixels(
+                        new Int32Rect(0, 0, this.writeableBMP.PixelWidth,
+                            this.writeableBMP.PixelHeight),
+                        pixelData, stride, 0);
+                }
+            }
+        }
+
         protected void ColorFrameHandler(object sender, ColorImageFrameReadyEventArgs e)
         {
             using (ColorImageFrame imageFrame = e.OpenColorImageFrame())
@@ -48,39 +65,6 @@
                             this.writeableBMP.PixelHeight),
                         pixelData, stride, 0);
                 }
-                /*
-                this.pixelData = new byte[imageFrame.PixelDataLength];
-                imageFrame.CopyPixelDataTo(this.pixelData);
-
-                int stride = imageFrame.Width * imageFrame.BytesPerPixel;
-                //from the tutorial, there is a check on colorimageformat that bombs out if
-                //the wrong format is set...do we need to worry about this?
-                //or is there a better way to handle the wrong image format?
-                if (imageFrame.Format == ColorImageFormat.InfraredResolution640x480Fps30)
-                {
-                    this.KinectVideoStream.Source = BitmapSource.Create(
-                    imageFrame.Width,
-                    imageFrame.Height,
-                    96,
-                    96,
-                    PixelFormats.Gray16,
-                    null,
-                    this.pixelData,
-                    stride);
-                }
-                else
-                {
-                    this.KinectVideoStream.Source = BitmapSource.Create(
-                    imageFrame.Width,
-                    imageFrame.Height,
-                    96,
-                    96,
-                    PixelFormats.Bgr32,
-                    null,
-                    this.pixelData,
-                    stride);
-                }
-                */
             }
         }
 
@@ -99,6 +83,11 @@
             this.SetSensorAngle(Int32.Parse(e.NewValue.ToString()));
         }
 
+        private void TrackPlayer(short[] depthFrame)
+        {
+            //to be implemented on next commit
+        }
+
         private void InitializeKinect()
         {
             if (KinectSensor.KinectSensors.Count > 0)
@@ -111,16 +100,16 @@
                 //first, then the default will not get called.  it may not be worth the time
                 //to also add a check for the type of stream...it may be better just to
                 //be a steam roller
-                if (!this.sensor.ColorStream.IsEnabled)
+                if (!this.sensor.DepthStream.IsEnabled)
                 {
-                    this.sensor.ColorStream.Enable();
+                    this.sensor.DepthStream.Enable();
                 }
                 this.writeableBMP = new WriteableBitmap(
                     this.sensor.ColorStream.FrameWidth,
                     this.sensor.ColorStream.FrameHeight,
-                    96, 96, PixelFormats.Bgr32, null);
+                    96, 96, PixelFormats.Gray16, null);
                 this.KinectVideoStream.Source = this.writeableBMP;
-                this.sensor.ColorFrameReady += this.ColorFrameHandler;
+                this.sensor.DepthFrameReady += this.DepthFrameHandler;
             }
             else
             {

@@ -20,7 +20,8 @@
         private KinectSensor sensor;
         //private byte[] pixelData;
         private WriteableBitmap writeableBMP;
-        private byte[] depth32;
+        //private byte[] depth32;
+        private DepthImagePixel[] depthImagePixels;
 
         public MainWindow()
         {
@@ -41,22 +42,26 @@
             {
                 if (depthFrame != null)
                 {
+                    /*
                     short[] pixelData = new short[depthFrame.PixelDataLength];
                     int stride = depthFrame.Width * depthFrame.BytesPerPixel * 2;
                     depthFrame.CopyPixelDataTo(pixelData);
+                     */
                     /*
                     this.writeableBMP.WritePixels(
                         new Int32Rect(0, 0, this.writeableBMP.PixelWidth,
                             this.writeableBMP.PixelHeight),
                         pixelData, stride, 0);
                     */
-                    depth32 = new byte[depthFrame.PixelDataLength * 4];
-                    this.TrackPlayer(pixelData); //writes to depth32...this is implied
+                    depthFrame.CopyDepthImagePixelDataTo(this.depthImagePixels);
+                    int stride = depthFrame.Width * depthFrame.BytesPerPixel;
+                    //depth32 = new byte[depthFrame.PixelDataLength * 4];
+                    //this.TrackPlayer(pixelData); //writes to depth32...this is implied
                     //and I don't like that :/
                     this.writeableBMP.WritePixels(
                         new Int32Rect(0, 0, this.writeableBMP.PixelWidth,
                             this.writeableBMP.PixelHeight),
-                            depth32, stride, 0);
+                            depthImagePixels.Select(x=>x.Depth).ToArray(), stride, 0);
                 }
             }
         }
@@ -92,7 +97,7 @@
         {
             this.SetSensorAngle(Int32.Parse(e.NewValue.ToString()));
         }
-
+        /*
         private void TrackPlayer(short[] depthFrame)
         {
             for (int depthIndex = 0, colorIndex = 0;
@@ -108,7 +113,7 @@
                 }
             }
         }
-
+        */
         private void InitializeKinect()
         {
             if (KinectSensor.KinectSensors.Count > 0)
@@ -129,10 +134,12 @@
                 {
                     this.sensor.SkeletonStream.Enable();
                 }
+                depthImagePixels = new DepthImagePixel[
+                    sensor.DepthStream.FramePixelDataLength];
                 this.writeableBMP = new WriteableBitmap(
                     this.sensor.DepthStream.FrameWidth,
                     this.sensor.DepthStream.FrameHeight,
-                    96, 96, PixelFormats.Bgr32, null);
+                    96, 96, PixelFormats.Gray16, null);
                 this.KinectVideoStream.Source = this.writeableBMP;
                 this.sensor.DepthFrameReady += this.DepthFrameHandler;
             }

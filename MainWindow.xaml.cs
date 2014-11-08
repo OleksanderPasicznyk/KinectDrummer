@@ -22,6 +22,7 @@
         private WriteableBitmap writeableBMP;
         //private byte[] depth32;
         private DepthImagePixel[] depthImagePixels;
+        private Skeleton[] allSkeletons;
 
         public MainWindow()
         {
@@ -83,6 +84,31 @@
             }
         }
 
+        protected void SkeletonFrameHandler(object sender, SkeletonFrameReadyEventArgs e)
+        {
+            using (SkeletonFrame skeletonFrame = e.OpenSkeletonFrame())
+            {
+                if (skeletonFrame == null)
+                {
+                    return;
+                }
+                skeletonFrame.CopySkeletonDataTo(allSkeletons);
+                Skeleton firstSkeleton = (from trackedSkeleton in allSkeletons
+                                          where trackedSkeleton.TrackingState
+                                          == SkeletonTrackingState.Tracked
+                                          select trackedSkeleton).FirstOrDefault();
+                if (firstSkeleton == null)
+                {
+                    return;
+                }
+                if (firstSkeleton.Joints[JointType.HandRight].TrackingState ==
+                    JointTrackingState.Tracked)
+                {
+                    this.MapJointsWithUIElement(firstSkeleton);
+                }
+            }
+        }
+
         private void ClickedStart(object sender, RoutedEventArgs e)
         {
             this.StartKinect();
@@ -130,10 +156,17 @@
                 {
                     this.sensor.DepthStream.Enable();
                 }
+                this.sensor.DepthStream.Range = DepthRange.Near;
                 if (!this.sensor.SkeletonStream.IsEnabled)
                 {
                     this.sensor.SkeletonStream.Enable();
+                    //this.sensor.SkeletonStream.Enable(TransformSmoothParameters smoothParameters);
                 }
+                this.sensor.SkeletonStream.EnableTrackingInNearRange = true;
+                this.sensor.SkeletonStream.TrackingMode = SkeletonTrackingMode.Seated;
+                this.sensor.SkeletonFrameReady += SkeletonFrameHandler;
+                allSkeletons = new Skeleton[this.sensor.SkeletonStream.FrameSkeletonArrayLength];
+                /*
                 depthImagePixels = new DepthImagePixel[
                     sensor.DepthStream.FramePixelDataLength];
                 this.writeableBMP = new WriteableBitmap(
@@ -142,6 +175,7 @@
                     96, 96, PixelFormats.Gray16, null);
                 this.KinectVideoStream.Source = this.writeableBMP;
                 this.sensor.DepthFrameReady += this.DepthFrameHandler;
+                 * */
             }
             else
             {
@@ -177,6 +211,21 @@
             {
                 this.sensor.ElevationAngle = angleValue;
             }
+        }
+
+        private void MapJointsWithUIElement(Skeleton skeleton)
+        {
+            Point mappedPoint = this.ScalePosition(skeleton.Joints[JointType.HandRight].Position);
+            Canvas.SetLeft(rightHand, mappedPoint.X);
+            Canvas.SetTop(rightHand, mappedPoint.Y);
+        }
+
+        private Point ScalePosition(SkeletonPoint skeletonPoint)
+        {
+            DepthImagePoint depthPoint = this.sensor.CoordinateMapper.
+                MapSkeletonPointToDepthPoint(skeletonPoint,
+                    DepthImageFormat.Resolution640x480Fps30);
+            return new Point(depthPoint.X, depthPoint.Y);
         }
     }
 }

@@ -9,7 +9,10 @@
         </LinearGradientBrush>
     </Window.Background>
     <Grid>
-        <Image x:Name="KinectVideoStream" Margin="10,10,10,70"/>
+        <!--<Image x:Name="KinectVideoStream" Margin="10,10,10,70"/>-->
+        <Canvas>
+            <Ellipse Canvas.Left="0" Canvas.Top="0" Fill="Blue" Height="15" Name="rightHand" Width="15" />
+        </Canvas>
         <Button x:Name="StartButton" Content="Start" Margin="355,607,217,17" Width="120" Height="45" Click="ClickedStart"/>
         <Button x:Name="StopButton" Content="Stop" Margin="511,607,61,17" Width="120" Height="45" Click="ClickedStop"/>
         <Slider HorizontalAlignment="Left" Margin="49,607,0,0" VerticalAlignment="Top" Width="242" IsSnapToTickEnabled="True"
